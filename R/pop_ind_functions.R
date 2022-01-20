@@ -40,7 +40,9 @@ clean_pop_estimates <- function(excel_path) {
     mutate(across(where(is.double), ~ .x*1000)) %>%
     mutate(territory_type = case_when(str_detect(state, "\\*") ~ "UT",
                                       TRUE ~ "State")) %>%
-    mutate(state = str_remove(state, "\\*"))
+    mutate(state = str_remove(state, "\\*")) %>%
+    mutate(state = case_when(state == "Jammu & Kashmir (Ut)" ~ "Jammu and Kashmir",
+                             TRUE ~ state))
   
   pop_share <- pop_raw %>%
     select(state, popshareind_male, popshareind_female, popshareind_person, sexratiost) %>%
@@ -49,21 +51,23 @@ clean_pop_estimates <- function(excel_path) {
               by = "state") %>%
     mutate(territory_type = case_when(str_detect(state, "\\*") ~ "UT",
                                       TRUE ~ "State")) %>%
-    mutate(state = str_remove(state, "\\*"))
+    mutate(state = str_remove(state, "\\*")) %>%
+    mutate(state = case_when(state == "Jammu & Kashmir (Ut)" ~ "Jammu and Kashmir",
+                             TRUE ~ state))
   
   popage <- popage_raw %>%
     select(state, age_group, starts_with("pop_")) %>%
     mutate(state = str_to_title(state)) %>%
     mutate(across(where(is.double), ~ .x*1000)) %>%
     mutate(state = case_when(state == "Nct Of Delhi" ~ "NCT of Delhi",
-                             state == "Jammu & Kashmir (Ut)" ~ "Jammu & Kashmir(UT)",
+                             state == "Jammu & Kashmir (Ut)" ~ "Jammu and Kashmir",
                              TRUE ~ state))
   
   popage_share <- popage_raw %>%
     select(state, age_group, starts_with("popshareind_"), sexratio) %>%
     mutate(state = str_to_title(state)) %>%
     mutate(state = case_when(state == "Nct Of Delhi" ~ "NCT of Delhi",
-                             state == "Jammu & Kashmir (Ut)" ~ "Jammu & Kashmir(UT)",
+                             state == "Jammu & Kashmir (Ut)" ~ "Jammu and Kashmir",
                              TRUE ~ state))
   
   pop_lst <- tibble::lst(pop, pop_share, popage, popage_share)

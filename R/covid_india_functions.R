@@ -69,16 +69,24 @@ get_covid_bharat_data <- function() {
   c19bh_data_st <- vroom("https://data.covid19bharat.org/csv/latest/states.csv") %>%
     clean_names() %>%
     create_diff(.group = state) %>%
-    ungroup()
+    ungroup() %>%
+    mutate(state = case_when(state == "India" ~ "All Regions",
+                             state == "Delhi" ~ "NCT of Delhi",
+                             TRUE ~ state))
   
   c19bh_data_dist <- vroom("https://data.covid19bharat.org/csv/latest/districts.csv") %>%
     clean_names() %>%
-    create_diff(.group = state)
+    create_diff(.group = state) %>%
+    mutate(state = case_when(state == "Delhi" ~ "NCT of Delhi",
+                             TRUE ~ state)) 
   
   c19bh_data_vaccine_st <- vroom("http://data.covid19bharat.org/csv/latest/vaccine_doses_statewise_v2.csv") %>%
     clean_names() %>%
     mutate(date = dmy(vaccinated_as_of)) %>%
-    create_diff(.group = state)
+    create_diff(.group = state) %>%
+    mutate(state = case_when(state == "Total" ~ "All Regions",
+                             state == "Delhi" ~ "NCT of Delhi",
+                             TRUE ~ state)) 
   
   ## Update 25 Dec 2021
   c19bh_cowin_vaccine_data_statewise <-  vroom("http://data.covid19bharat.org/csv/latest/cowin_vaccine_data_statewise.csv") %>%
@@ -105,7 +113,10 @@ get_covid_bharat_data <- function() {
     mutate(aefi = case_when(aefi == 0 & (date >= "2021-08-15" & date <= "2021-08-21") ~ NA_real_,
                             aefi == 0 & date == "2021-09-12" ~ NA_real_,
                             TRUE ~ aefi)) %>%
-    select(date, state, aefi, starts_with("vaccinations"))
+    select(date, state, aefi, starts_with("vaccinations")) %>%
+    mutate(state = case_when(state == "India" ~ "All Regions",
+                             state == "Delhi" ~ "NCT of Delhi",
+                             TRUE ~ state)) 
   
   c19bh_cowin_vaccine_data_statewise_d <- c19bh_cowin_vaccine_data_statewise %>%
     create_diff(.group = state) %>%
