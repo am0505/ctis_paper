@@ -1,0 +1,196 @@
+---
+title: "Analysis Pipeline"
+author: "Abhinav Motheram"
+date: "19/1/2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+Set up the workflow pipeline and options. We first load the `targets` package and remove the potentially outdated workflow.
+
+```{r packages, echo=FALSE, message=FALSE, warning=FALSE}
+library(targets)
+library(tarchetypes)
+library(tflow)
+library(fnmate)
+
+library(knitr)
+library(rmarkdown)
+
+tar_unscript()
+```
+
+```{targets globals, tar_globals = TRUE}
+
+library(conflicted)
+library(dotenv)
+
+library(targets)
+library(tarchetypes)
+library(here)
+library(purrr, quietly = TRUE)
+
+## renv::install("an0505/ctisglobal")
+library(ctisglobal)
+
+library(tidyverse)
+library(vroom)
+library(janitor)
+library(lubridate)
+library(readxl)
+
+library(here)
+
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+
+
+functions <- list.files(here("R"), full.names = TRUE)
+walk(functions, source)
+```
+
+## Define Targets
+
+## Data Import
+
+### COVID-19 India Targets
+
+```{targets c19_bharat_data}
+tar_target(
+  c19_bharat_data,
+  get_covid_bharat_data(),
+  cue = tarchetypes::tar_cue_age(
+    name = c19_bharat_data,
+    age = as.difftime(1, units = "days")
+  )
+)
+```
+
+### Population Targets
+
+```{targets ind_pop_projections}
+tar_target(
+  ind_pop_projections,
+  clean_pop_estimates(excel_path = "data/Population projection_2020.xlsx")
+)
+```
+
+```{targets ind_pop_adult_projections}
+tar_target(
+  ind_pop_adult_projections,
+  read_excel(here("data/pop_projection_adult_oct2021.xlsx")) %>% 
+    clean_names() %>% 
+    select(state, person, male, female) %>% 
+    mutate_if(is.double, as.integer) %>% 
+    mutate(across(c("person", "male", "female"), ~ .x * 1000)) %>%
+    mutate(state = case_when(state == "India" ~ "All Regions",
+                             state == "Delhi" ~ "NCT of Delhi",
+                             TRUE ~ state)),
+  format = "fst_tbl"
+)
+```
+
+### CTIS Targets
+
+```{targets ctis_public_doc}
+tar_target(
+  ctis_public_doc,
+  ctis_get_public_apidoc(),
+  format = "fst_tbl"
+)
+```
+
+```{targets ctis_public_indicators}
+tar_target(
+  ctis_public_indicators,
+  ctis_public_doc %>%
+    filter(indicator %in% c("covid", "flu", "anosmia", "vaccine_acpt", "covid_vaccine", "twodoses")) %>%
+    pull(indicator)
+)
+
+```
+
+```{targets ctis_public_regions}
+tar_target(
+  ctis_public_regions,
+  ctis_get_public_regions(),
+  format = "fst_tbl"
+)
+```
+
+```{targets ctis_public_regions_india}
+tar_target(
+  ctis_public_regions_india,
+  ctis_public_regions %>%
+    filter(country == "India") %>%
+    pull(region) %>%
+    append(NA)
+)
+```
+
+```{targets ctis_india_public}
+tar_target(
+  ctis_india_public,
+  ctis_get_public_data(indicator = ctis_public_indicators, 
+                       region = ctis_public_regions_india, 
+                       date_end = as.character(Sys.Date() - 3)),
+  pattern = cross(ctis_public_indicators, ctis_public_regions_india),
+  format = "fst_tbl",
+  cue = tarchetypes::tar_cue_age(
+    name = ctis_india_public,
+    age = as.difftime(1, units = "days")
+  )
+)
+
+```
+
+## Data Cleaning
+
+Merge covid19bharat vaccination data and CTIS vaccination estimates to form a single table.
+
+```{targets c19_vaccine_merged}
+tar_target(
+  c19_vaccine_merged,
+  merge_vaccine_estimates(c19_bharat_data, 
+                          ind_pop_adult_projections,
+                          ctis_india_public),
+  format = "fst_tbl"
+)
+
+```
+
+Merge covid19bharat COVID diagnostic data and CTIS CLI estimates to form a single table.
+
+```{targets c19_covid_merged}
+tar_target(
+  c19_covid_merged,
+  merge_covid_estimates(c19_bharat_data,
+                        ind_pop_projections,
+                        ctis_india_public),
+  format = "fst_tbl"
+)
+
+```
+
+## Render Report
+
+```{targets ctis_report}
+tar_render(
+  ctis_report,
+  here("reports/vaccination_analysis_draft_v4.Rmd"),
+  output_format ="all"
+)
+
+```
+
+# Run the Pipeline
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tar_make()
+```
+
