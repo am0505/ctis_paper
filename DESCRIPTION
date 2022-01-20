@@ -1,0 +1,46 @@
+Type: Compendium
+Package: ctis_paper
+Title: CTIS Validation Analysis
+Version: 0.0.0.9000
+Authors@R: 
+  person("Abhinav", "Motheram", "amotheram@ncaer.org", role = c("aut", "cre"))
+Description: Repository including replication code and data for CTIS
+    validation paper
+License: MIT + file LICENSE
+Depends: 
+    conflicted,
+    ctisglobal,
+    dotenv,
+    epiprocess,
+    fnmate,
+    future,
+    glue,
+    gtsummary,
+    here,
+    janitor,
+    knitr,
+    lubridate,
+    patchwork,
+    purrr,
+    readxl,
+    renv,
+    rmarkdown,
+    scales,
+    srvyr,
+    tarchetypes,
+    targets,
+    tflow,
+    tibble,
+    tidyquant,
+    tidyverse,
+    vroom
+Remotes: 
+    am0505/ctisglobal,
+    cmu-delphi/epiprocess,
+    ddsjoberg/gtsummary,
+    gergness/srvyr,
+    milesmcbain/fnmate,
+    milesmcbain/tflow,
+    rstudio/renv
+Encoding: UTF-8
+LazyData: true
