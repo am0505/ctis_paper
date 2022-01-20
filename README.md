@@ -12,7 +12,9 @@ This analysis in this repository has been implemented using the
 [`targets`](https://docs.ropensci.org/targets/) package and associated
 packages. The workflow can be visualised as the following graph.
 
-![](targets-graph.png) - Run the workflow sequentially.
+![](targets-graph.png)
+
+-   Run the workflow sequentially.
 
 ``` r
 targets::tar_make()
